@@ -1,0 +1,340 @@
+from Tkinter import *
+import tkFileDialog
+from PIL import Image, ImageTk
+import sqlite3
+import tkMessageBox
+
+#class ImportDisplayFrame creates a new frame as needed
+class ImportDisplayFrame(Toplevel):
+    
+    def __init__(self):
+        Toplevel.__init__(self)
+        self.geometry("1500x900")
+        self.title("Photo Storage Plus")
+
+
+'''MainMenu class also includes button function methods - ie, methods that
+define actions occuring on other pages (when ImportDisplayFrame is called)'''
+class MainMenu(Frame):
+    
+    def __init__(self, parent, *args, **kwargs):
+        Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+        self.program_title = root.title("Photo Storage Plus")
+        self.program_geo = root.geometry("1500x900")
+        self.bg_color = root.configure(bg="steel blue")
+        self.main_page()
+
+    #method called when program is first run        
+    def main_page(self):
+        #labels
+        self.welcome = Label(root, text="Welcome to Photo Storage Plus!",
+                             font=("Segoe Print", 50, "bold"), bg="steel blue")
+        self.welcome.place(x=220, y=20)
+        
+        #self.album = Label(root, 
+        #            text="- Creates a new photo album from existing pictures", 
+        #            font=("Corbel", 16, "bold"), bg="steel blue", fg="white")
+        #self.album.place(x=250, y=195)
+        
+        #self.imp_exp = Label(root, 
+        #                text="- Import existing files into Photo Storage Plus", 
+        #                font=("Corbel", 16, "bold"), bg="steel blue", 
+        #                fg="white")
+        #self.imp_exp.place(x=250, y=245)
+        
+        self.data_exp = Label(root, 
+                    text="- Attach information to photos as search parameters",
+                    font=("Corbel", 16, "bold"), bg="steel blue", fg="white")
+        self.data_exp.place(x=250, y=195)
+        
+        self.search_exp = Label(root, text="- Search for existing photos", 
+                    font=("Corbel", 16, "bold"), bg="steel blue", fg="white")
+        self.search_exp.place(x=250, y=245)
+        
+        #buttons
+        #self.new_album = Button(root, text="Create New Photo Album")
+        #self.new_album.place(x=100, y=200)
+        
+        #self.import_photo = Button(root, text="Import Pictures", 
+        #                           command=self.imp_pic)
+        #self.import_photo.place(x=100, y=250)
+        
+        self.set_data = Button(root, text="Add Image Data", 
+                               command=self.image_info)
+        self.set_data.place(x=100, y=200)
+        
+        self.photo_search = Button(root, text="Search For Photos", 
+                                   command=self.search_for_photo)
+        self.photo_search.place(x=100, y=250)
+        
+        #menu bar
+        #search/add windows not destroyed when using filemenu
+        self.photo_menubar = Menu(self)
+        filemenu = Menu(self.photo_menubar, tearoff=0)
+        #back_handler = lambda: self.back_butt(self)
+        #filemenu.add_command(label="Main Menu", command=back_handler)
+        #filemenu.add_command(label="Add Image Data", command=self.image_info)
+        #filemenu.add_command(label="Search", command=self.search_for_photo)
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit", command=root.destroy)
+        self.photo_menubar.add_cascade(label="File", menu=filemenu)
+        root.config(menu=self.photo_menubar)
+        
+    #3 methods called when changing frames    
+    def forget_me_stick(self):
+        root.withdraw()
+        
+    def back_butt(self, otherFrame):
+        otherFrame.destroy()
+        self.show()
+        
+    def show(self):
+        root.update()
+        root.deiconify()
+        
+
+    #creates database            
+    def pic_db(self):
+        database = 'C:\Users\olivi_000\Documents\Python Scripts\searchme.db'
+        pic_var = sqlite3.connect(database)
+        #pic_var.executescript('DROP TABLE IF EXISTS photos;')
+        #print "Opened database successfully"
+        pic_var.execute('''CREATE TABLE IF NOT EXISTS photos 
+                        (im_chosen PRIMARY KEY, name TEXT, date INTEGER, 
+                        place TEXT, event TEXT)''')
+        pic_var.close()
+
+    #entry widgets for adding image data      
+    def name_entry(self, master):
+        self.who_name = Entry(self.master, bd=5)
+        self.where_name = Entry(self.master, bd=5)
+        self.when_name = Entry(self.master, bd=5)
+        self.what_name = Entry(self.master, bd=5)
+
+    #button that gets info from entry widgets and stores them in database    
+    def name_entered(self):
+        #create print statement or popup or acknowledgement that user has 
+        #clicked button and that info has been added
+        info1 = self.who_name.get()
+        info2 = self.where_name.get()
+        info3 = self.when_name.get()
+        info4 = self.what_name.get()
+        pic_var = sqlite3.connect('searchme.db')
+        #create table
+        pic_var.execute('''CREATE TABLE IF NOT EXISTS photos
+                        (im_chosen UNIQUE ON CONFLICT REPLACE, name TEXT, 
+                        date INTEGER, place TEXT, event TEXT)''')
+                                
+        pic_var.text_factory = str
+        p_v = pic_var.cursor()
+        #p_v.execute('''DROP TABLE IF EXISTS photos''')                                        
+        #insert row of data
+        p_v.execute('''INSERT OR REPLACE INTO photos (im_chosen, 
+                    name, date, place, event) VALUES (?,?,?,?,?)''',
+                    (self.im_chosen, info1, info2, info3, info4))
+        #p_v.execute('''INSERT OR REPLACE INTO photos (im_chosen, 
+        #            name, date, place, event) \ VALUES (?,?,?,?,?)''',
+        #            (self.im_chosen, info1, info2, info3, info4))
+
+        p_v.execute('''SELECT * FROM photos''')
+                
+        #save (commit) the changes
+        pic_var.commit()
+        pic_var.close()
+        
+        tkMessageBox.showinfo("", "Info added")
+        
+    #creates labels and entry widgets for photo data    
+    def who_am_i(self, master):
+        l_name = Label(master, text="Name of people or objects in photo:", 
+                       bg="steel blue", fg="white")
+        l_name.place(x=1000, y=600)
+        self.who_name = Entry(master, bd=5)
+        self.who_name.place(x=1250, y=595)
+        #self.e_name.bind('<Return>', self.name_entry)
+        
+    def where_am_i(self, master):
+        l_name = Label(master, text="Location of photo:", bg="steel blue", 
+                       fg="white")
+        l_name.place(x=1000, y=650)
+        self.where_name = Entry(master, bd=5)
+        self.where_name.place(x=1250, y=645)
+        #self.e_name.bind('<Return>', self.name_entry)
+        
+    def when_am_i(self, master):
+        l_name = Label(master, text="Date of photo:", bg="steel blue", 
+                       fg="white")
+        l_name.place(x=1000, y=700)
+        self.when_name = Entry(master, bd=5)
+        self.when_name.place(x=1250, y=695)
+        #self.e_name.bind('<Return>', self.name_entry)
+        
+    def what_am_i(self, master):
+        l_name = Label(master, text="Event in/during photo:", bg="steel blue", 
+                       fg="white")
+        l_name.place(x=1000, y=750)
+        self.what_name = Entry(master, bd=5)
+        self.what_name.place(x=1250, y=745)
+        #self.e_name.bind('<Return>', self.name_entry)
+        
+    #layout for frame to add info to an image    
+    def image_info(self):
+        self.im_chosen = tkFileDialog.askopenfilename()
+        if not self.im_chosen:
+            self.main_page()
+        else:
+            self.forget_me_stick()
+            im_subFrame = ImportDisplayFrame()
+            im_subFrame.config(menu=self.photo_menubar)
+            handler2 = lambda: self.back_butt(im_subFrame)
+            handler3 = lambda: self.name_entered()
+            go_back2 = Button(im_subFrame, text="Back to Main Menu", 
+                              command=handler2)
+            go_back2.place(x=1300, y=850)
+            add_im_info = Button(im_subFrame, text="Add information to image", 
+                                 command=handler3)
+            add_im_info.place(x=1300, y=800)
+            im_subFrame.configure(bg="steel blue")
+            c = Image.open(self.im_chosen)
+            pic_update = ImageTk.PhotoImage(c)
+            l_up = Label(im_subFrame, image=pic_update)
+            l_up.image = pic_update
+            l_up.place(x=100, y=100)
+            self.who_am_i(im_subFrame)
+            self.where_am_i(im_subFrame)
+            self.when_am_i(im_subFrame)
+            self.what_am_i(im_subFrame)
+            self.pic_db()
+        
+
+    #layout for photo search frame    
+    def search_for_photo(self):
+        self.forget_me_stick()
+        self.search_subFrame = ImportDisplayFrame()
+        self.search_subFrame.config(menu=self.photo_menubar)
+        self.search_subFrame.configure(bg="steel blue")
+        self.wl = PanedWindow(self.search_subFrame, relief=SUNKEN, bd=3,
+                              bg="LightSteelBlue3")
+        self.wl.place(x=10, y=150, width=950, height=725)
+        self.wbr = PanedWindow(self.search_subFrame, relief=SUNKEN, bd=3, 
+                               orient=VERTICAL)
+        self.wbr.place(x=970, y=570, width=500, height=305)
+        self.search_label = Label(self.search_subFrame, text="Photo search", 
+                                  font=("Segoe Print", 50, "bold"), 
+                                  bg="steel blue")
+        self.search_label.place(x=520, y=20)
+        handler3 = lambda: self.back_butt(self.search_subFrame)
+        go_back3 = Button(self.wbr, text="Back to Main Menu", 
+                          command=handler3)
+        handler4 = lambda: self.search_butt()
+        self.search_button = Button(self.wbr, 
+                                    text="Search for picture",
+                                    command=handler4)
+        handler5 = lambda: self.new_search()
+        self.newsearch_butt = Button(self.wbr, text="New search", 
+                                     command=handler5)
+        
+        #self.who_am_i(self.wbr)
+        who_label = Label(self.wbr, text="Name of people or objects in photo:")
+        self.wbr.add(who_label)
+        self.who_entry = Entry(self.wbr, bd=5)
+        self.wbr.add(self.who_entry)
+        
+        #self.where_am_i(self.wbr)
+        where_label = Label(self.wbr, text="Location of photo:")
+        self.wbr.add(where_label)
+        self.where_entry = Entry(self.wbr, bd=5)
+        self.wbr.add(self.where_entry)
+        
+        #self.when_am_i(self.wbr)
+        when_label = Label(self.wbr, text="Date of photo:")
+        self.wbr.add(when_label)
+        self.when_entry = Entry(self.wbr, bd=5)
+        self.wbr.add(self.when_entry)
+        
+        #self.what_am_i(self.wbr)
+        what_label = Label(self.wbr, text="Event in/during photo:")
+        self.wbr.add(what_label)
+        self.what_entry = Entry(self.wbr, bd=5)
+        self.wbr.add(self.what_entry)
+        
+        self.wbr.add(go_back3)
+        self.wbr.add(self.search_button)
+        self.wbr.add(self.newsearch_butt)
+
+
+    #search button function method    
+    def search_butt(self):
+        pfx = 10
+        pfy = 10
+        info1 = self.who_entry.get()
+        info2 = self.where_entry.get()
+        info3 = self.when_entry.get()
+        info4 = self.what_entry.get()
+        pic_var = sqlite3.connect('searchme.db')
+        pic_var.text_factory = str
+        p_v = pic_var.cursor()
+        p_v.execute('''SELECT im_chosen FROM photos WHERE name LIKE ?''', 
+                    ('%'+info1+'%',))
+        if info1 == '' and info2 == '' and info3 == '' and info4 == '':
+            tkMessageBox.showinfo("", "None found")
+            return None
+        p_v.execute('''SELECT im_chosen FROM photos WHERE date LIKE ?''',
+                    ('%'+info2+'%',))
+        p_v.execute('''SELECT im_chosen FROM photos WHERE place LIKE ?''',
+                    ('%'+info3+'%',))
+        p_v.execute('''SELECT im_chosen FROM photos WHERE event LIKE ?''',
+                    ('%'+info4+'%',))
+        self.p_v_fetch = p_v.fetchall()
+        for self.pv in range(len(self.p_v_fetch)):
+            self.ifetch = Image.open(self.p_v_fetch[self.pv][0])
+            self.ifetch.thumbnail((100, 100), Image.NEAREST)
+            self.pfetch = ImageTk.PhotoImage(self.ifetch)
+            handler4 = lambda index=self.pv: self.expand_button(index)
+            self.lfetch = Button(self.wl, image = self.pfetch, 
+                                 relief=FLAT, command=handler4)
+            self.lfetch.image = self.pfetch
+
+            self.lfetch.place(x=pfx, y=pfy)
+            pfx+=120
+            if pfx >= 1470 - pfx:
+                pfx = 10
+                pfy += 120
+        self.search_button.configure(state=DISABLED)
+
+                
+    def new_search(self):
+        self.wl.destroy()
+        self.wl = PanedWindow(self.search_subFrame, relief=SUNKEN, bd=3,
+                              bg="LightSteelBlue3")
+        self.wl.place(x=10, y=150, width=950, height=725)
+        self.search_button.configure(state=NORMAL)
+
+
+    #allows image thumbnail icons to be enlarged upon clicking    
+    def expand_button(self, index):
+        #print "index = ", index
+        #print "pvfetch =", self.p_v_fetch[index][0]
+        if self.pfetch:
+            im_click_subFrame = ImportDisplayFrame()
+            im_click_subFrame.configure(bg="steel blue")
+            #print "im_expand =", self.p_v_fetch[index][0]
+            im_expand = Image.open(self.p_v_fetch[index][0])
+            im_show = ImageTk.PhotoImage(im_expand)
+            l_show = Label(im_click_subFrame, image=im_show)
+            l_show.image = im_show
+            l_show.place(x=10, y=10)
+            #next_button = Button(im_click_subFrame, text="Next")
+            #next_button.place(x=750, y=850)
+
+        
+#if __name__ == "__main__":
+root = Tk()
+
+def main():
+    MainMenu(root).place()
+    root.mainloop()
+    
+if __name__ == "__main__":
+    main()
